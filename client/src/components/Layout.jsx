@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/sidebar";
 import { FileSpreadsheet, LogOut } from "lucide-react";
 import { toast } from "sonner";
-// import { resetTokenAndCredentials } from "../redux/auth-slice";
+import { resetTokenAndCredentials } from "../redux/auth-slice";
 import { useDispatch, useSelector } from "react-redux";
 // import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -18,7 +18,7 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(FileSpreadsheet);
 
   const handleLogout = () => {
-    // dispatch(resetTokenAndCredentials());
+    dispatch(resetTokenAndCredentials());
     toast.success("Logout successful");
   };
 

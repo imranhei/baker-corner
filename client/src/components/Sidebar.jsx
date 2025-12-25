@@ -36,14 +36,22 @@ const AdminSidebar = ({ sidebarOpen, setSidebarOpen }) => {
   return (
     <Sidebar open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <SidebarHeader className="font-semibold flex-col border-b p-4">
-        <Link to="/" className="flex gap-2">
-          <ShoppingCart className="size-6" />
-          Baker Corner
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex gap-2">
+          <img
+            src="/bakers_corner_logo.svg"
+            alt="Bakers Corner Logo"
+            className="size-14"
+          />
         </Link>
-        <span className="text-sm text-muted-foreground">
+        <div className="flex-1 text-center">
+          <span className="text-sm text-muted-foreground">
           {" "}
-          Welcome, {user?.name}
+          Welcome
         </span>
+        <p>{user?.name}</p>
+        </div>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroupContent>

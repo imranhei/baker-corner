@@ -35,7 +35,7 @@ export const Menu = [
     icon: Package,
   },
   {
-    title: "Dispatch",
+    title: "Sales",
     url: "/dispatch",
     icon: Truck,
   },
@@ -44,23 +44,23 @@ export const Menu = [
     url: "/summary",
     icon: BarChart3,
   },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-    subMenus: [
-      {
-        title: "Profile",
-        url: "/admin/profile",
-      },
-      {
-        title: "Users",
-        url: "/admin/users",
-      },
-      {
-        title: "Change Password",
-        url: "/admin/change-password",
-      },
-    ],
-  },
+  // {
+  //   title: "Settings",
+  //   url: "#",
+  //   icon: Settings,
+  //   subMenus: [
+  //     {
+  //       title: "Profile",
+  //       url: "/admin/profile",
+  //     },
+  //     {
+  //       title: "Users",
+  //       url: "/admin/users",
+  //     },
+  //     {
+  //       title: "Change Password",
+  //       url: "/admin/change-password",
+  //     },
+  //   ],
+  // },
 ];

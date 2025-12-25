@@ -23,7 +23,7 @@ export function AddDispatchModal({
   onAddDispatch = () => {},
   onUpdateDispatch = () => {},
   initialData = null,
-  triggerLabel = "Add Dispatch",
+  triggerLabel = "Add Sale",
   type = "button",
   actionLoading = false,
 }) {
@@ -100,7 +100,7 @@ export function AddDispatchModal({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {initialData ? "Update Dispatch" : "Add New Dispatch"}
+              {initialData ? "Update Dispatch" : "Add New Sale"}
             </DialogTitle>
           </DialogHeader>
 
@@ -190,7 +190,7 @@ export function AddDispatchModal({
                 ) : initialData ? (
                   "Update"
                 ) : (
-                  "Add Dispatch"
+                  "Add Sale"
                 )}
               </Button>
             </div>

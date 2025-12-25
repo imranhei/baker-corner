@@ -4,7 +4,7 @@ const Dashboard = () => {
   return (
     <div className='grid grid-cols-3 gap-4'>
       <div className='w-full bg-teal-400 h-40 flex items-center justify-center text-white font-bold rounded-lg shadow-md'>
-        Receive form
+        Receive Form
       </div>
       <div className='w-full bg-teal-400 h-40 flex items-center justify-center text-white font-bold rounded-lg shadow-md'>
         Received Item
@@ -13,10 +13,10 @@ const Dashboard = () => {
         Stock
       </div>
       <div className='w-full bg-teal-400 h-40 flex items-center justify-center text-white font-bold rounded-lg shadow-md'>
-       Dispatch form
+       Sales Form
       </div>
       <div className='w-full bg-teal-400 h-40 flex items-center justify-center text-white font-bold rounded-lg shadow-md'>
-        Dispatched Item
+        Sale Item
       </div>
       <div className='w-full bg-teal-400 h-40 flex items-center justify-center text-white font-bold rounded-lg shadow-md'>
         Summary

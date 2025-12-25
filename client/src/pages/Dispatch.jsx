@@ -86,7 +86,7 @@ const Dispatch = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between py-4">
           <CardTitle>
-            Dispatch List{" "}
+            Sale List{" "}
             <Badge variant="outline" className="ml-2">
               {pagination.total}
             </Badge>
@@ -101,7 +101,7 @@ const Dispatch = () => {
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search dispatched items..."
+              placeholder="Search sale items..."
               value={searchTerm}
               onChange={(e) => {
                 setPage(1);
