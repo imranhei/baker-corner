@@ -19,7 +19,7 @@ export function ItemTable({
 }) {
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border mb-4">
       <Table>
         <TableHeader>
           <TableRow>

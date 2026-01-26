@@ -11,6 +11,7 @@ import {
 } from "@/redux/admin/item-slice";
 import { ItemTable } from "@/components/ItemTable";
 import { fetchCategories } from "@/redux/admin/category-slice";
+import CustomPagination from "@/components/CustomPagination";
 
 const Items = () => {
   const dispatch = useDispatch();
@@ -78,7 +79,7 @@ const Items = () => {
   }, [dispatch, page, searchTerm]);
 
   useEffect(() => {
-    dispatch(fetchCategories());
+    dispatch(fetchCategories({ limit: 1000 }));
   }, [dispatch]);
 
   return (
@@ -101,6 +102,14 @@ const Items = () => {
             actionLoading={actionLoading}
             onDeleteItem={handleDeleteItem}
             onUpdateItem={handleUpdateItem}
+          />
+
+          {/* Pagination */}
+          <CustomPagination
+            total={pagination.total}
+            page={page}
+            limit={pagination.limit}
+            onPageChange={setPage}
           />
         </CardContent>
       </Card>

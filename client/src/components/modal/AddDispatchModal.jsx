@@ -52,7 +52,7 @@ export function AddDispatchModal({
 
   useEffect(() => {
     if (open) {
-      dispatch(fetchItems());
+      dispatch(fetchItems({ page: 1, limit: 1000 }));
     }
   }, [open, dispatch]);
 

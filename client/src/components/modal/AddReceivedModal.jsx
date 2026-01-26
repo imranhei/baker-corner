@@ -40,7 +40,7 @@ export function AddReceivedModal({
 
   useEffect(() => {
     if (open) {
-      dispatch(fetchItems());
+      dispatch(fetchItems({ page: 1, limit: 1000 }));
       setFormData({
         itemId: initialData?.item?._id || "",
         quantity: initialData?.quantity || "",
