@@ -23,7 +23,7 @@ const Dispatch = () => {
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const limit = 10;
+  const limit = 20;
 
   const fetchData = () => {
     dispatch(fetchDispatches({ page, limit, search: searchTerm }))

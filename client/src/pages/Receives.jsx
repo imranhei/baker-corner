@@ -23,7 +23,7 @@ const Receives = () => {
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const limit = 10;
+  const limit = 20;
 
   const fetchData = () => {
     dispatch(fetchReceives({ page, limit, search: searchTerm }))

@@ -11,10 +11,13 @@ import {
 } from "@/redux/admin/item-slice";
 import { ItemTable } from "@/components/ItemTable";
 import { fetchCategories } from "@/redux/admin/category-slice";
-import CustomPagination from "@/components/CustomPagination";
+import { Input } from "@/components/ui/input";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const Items = () => {
   const dispatch = useDispatch();
+
   const {
     items,
     pagination,
@@ -24,15 +27,50 @@ const Items = () => {
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const limit = 10;
+  const limit = 20;
 
+  // ✅ Debounce search
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
+  // ✅ Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  // ✅ Fetch items
+  useEffect(() => {
+    dispatch(fetchItems({ page, limit, search: debouncedSearch }))
+      .unwrap()
+      .catch((err) => {
+        toast.error(err);
+      });
+  }, [dispatch, page, debouncedSearch]);
+
+  // ✅ Fetch categories once
+  useEffect(() => {
+    dispatch(fetchCategories({ limit: 1000 }));
+  }, [dispatch]);
+
+  // ✅ Infinite scroll load more
+  const loadMore = () => {
+    if (!itemsLoading && pagination?.hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const lastElementRef = useInfiniteScroll(
+    loadMore,
+    pagination?.hasMore,
+    itemsLoading,
+  );
+
+  // ✅ Handlers
   const handleAddItem = (newItem) => {
     return dispatch(addItem(newItem))
       .unwrap()
       .then(() => {
-        fetchData();
-        toast.success("Item added successfully");
         setPage(1);
+        toast.success("Item added successfully");
       })
       .catch((err) => {
         toast.error(err);
@@ -44,12 +82,11 @@ const Items = () => {
     return dispatch(deleteItem(id))
       .unwrap()
       .then(() => {
-        fetchData();
         toast.success("Item deleted successfully");
       })
       .catch((err) => {
         toast.error(err);
-        throw err; // keep modal open on failure
+        throw err;
       });
   };
 
@@ -57,60 +94,60 @@ const Items = () => {
     return dispatch(updateItem({ id: updatedData.id, itemData: updatedData }))
       .unwrap()
       .then(() => {
-        fetchData();
         toast.success("Item updated successfully");
       })
       .catch((err) => {
         toast.error(err || "Failed to update item");
-        throw err; // Keep modal open if update fails
+        throw err;
       });
   };
-
-  const fetchData = () => {
-    dispatch(fetchItems({ page, limit, search: searchTerm }))
-      .unwrap()
-      .catch((err) => {
-        toast.error(err);
-      });
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [dispatch, page, searchTerm]);
-
-  useEffect(() => {
-    dispatch(fetchCategories({ limit: 1000 }));
-  }, [dispatch]);
 
   return (
     <div className="flex flex-col w-full min-h-[calc(100vh-6rem)]">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <CardTitle>Items List</CardTitle>
-          <AddItemModal
-            onAddItem={handleAddItem}
-            actionLoading={actionLoading}
-          />
+
+          <div className="flex gap-3 w-full md:w-auto">
+            {/* 🔍 Search */}
+            <Input
+              placeholder="Search items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:w-[250px]"
+            />
+
+            {/* ➕ Add */}
+            <AddItemModal
+              onAddItem={handleAddItem}
+              actionLoading={actionLoading}
+            />
+          </div>
         </CardHeader>
+
         <CardContent>
           <ItemTable
             items={items}
-            pagination={pagination}
             isLoading={itemsLoading}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
             actionLoading={actionLoading}
             onDeleteItem={handleDeleteItem}
             onUpdateItem={handleUpdateItem}
+            lastElementRef={lastElementRef}
           />
 
-          {/* Pagination */}
-          <CustomPagination
-            total={pagination.total}
-            page={page}
-            limit={pagination.limit}
-            onPageChange={setPage}
-          />
+          {/* 🔄 Loader */}
+          {itemsLoading && (
+            <p className="text-center py-4 text-sm text-muted-foreground">
+              Loading...
+            </p>
+          )}
+
+          {/* 🚫 Empty State */}
+          {!itemsLoading && items.length === 0 && (
+            <p className="text-center py-4 text-sm text-muted-foreground">
+              No items found
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -15,7 +15,7 @@ export const createCategory = async (req, res) => {
 // Get all categories (with pagination + filter)
 export const getCategories = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const { page = 1, limit = 20, search = "" } = req.query;
     const query = search ? { name: { $regex: search, $options: "i" } } : {};
 
     const categories = await Category.find(query)

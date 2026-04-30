@@ -11,13 +11,12 @@ import { AddItemModal } from "./modal/AddItemModal";
 
 export function ItemTable({
   items,
-  pagination,
   isLoading,
   onDeleteItem,
   onUpdateItem,
   actionLoading,
+  lastElementRef,
 }) {
-
   return (
     <div className="rounded-md border mb-4">
       <Table>
@@ -30,48 +29,61 @@ export function ItemTable({
             <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
-          {isLoading ? (
+          {isLoading && items.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-6">
                 Loading...
               </TableCell>
             </TableRow>
           ) : items.length > 0 ? (
-            items.map((item, index) => (
-              <TableRow key={item._id}>
-                <TableCell>
-                  {(pagination.page - 1) * pagination.limit + index + 1}
-                </TableCell>
-                <TableCell>
-                    {item.name}
-                </TableCell>
-                <TableCell>
-                    {item.category?.name || 'Uncategorized'}
-                </TableCell>
-                <TableCell>
-                    {item.createdAt.split('T')[0].split('-').reverse().join('-') || 'N/A'}
-                </TableCell>
-                <TableCell>
-                  <DeleteModal
-                    onDeleteItem={onDeleteItem}
-                    actionLoading={actionLoading}
-                    id={item._id}
-                    name={item.name}
-                  />
-                  <AddItemModal
-                    onUpdateItem={onUpdateItem}
-                    type="icon"
-                    initialData={item}
-                    triggerLabel="Edit"
-                    actionLoading={actionLoading}
-                  />
-                </TableCell>
-              </TableRow>
-            ))
+            items.map((item, index) => {
+              const isLast = items.length === index + 1;
+
+              return (
+                <TableRow
+                  key={item._id}
+                  ref={isLast ? lastElementRef : null} // ✅ attach here
+                >
+                  {/* ✅ Serial number (correct for infinite scroll) */}
+                  {/* <TableCell>{index + 1}</TableCell> */}
+                  <TableCell>{items.findIndex(i => i._id === item._id) + 1}</TableCell>
+
+                  <TableCell>{item.name}</TableCell>
+
+                  <TableCell>
+                    {item.category?.name || "Uncategorized"}
+                  </TableCell>
+
+                  <TableCell>
+                    {item.createdAt
+                      ? new Date(item.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </TableCell>
+
+                  <TableCell className="flex gap-2">
+                    <DeleteModal
+                      onDeleteItem={onDeleteItem}
+                      actionLoading={actionLoading}
+                      id={item._id}
+                      name={item.name}
+                    />
+
+                    <AddItemModal
+                      onUpdateItem={onUpdateItem}
+                      type="icon"
+                      initialData={item}
+                      triggerLabel="Edit"
+                      actionLoading={actionLoading}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
-              <TableCell colSpan={3} className="text-center py-6 text-gray-500">
+              <TableCell colSpan={5} className="text-center py-6 text-gray-500">
                 No items found.
               </TableCell>
             </TableRow>

@@ -6,7 +6,7 @@ const initialState = {
   actionLoading: false,
   stocks: [],
   stock: {},
-  pagination: { total: 0, totalAll: 0, page: 1, limit: 10 },
+  pagination: { total: 0, totalAll: 0, page: 1, limit: 20 },
 };
 
 export const fetchStocks = createAsyncThunk(

@@ -8,7 +8,9 @@ export const createItem = async (req, res) => {
 
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
-      return res.status(400).json({ success: false, message: "Invalid category" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid category" });
     }
 
     const item = new Item({ name, category });
@@ -23,23 +25,34 @@ export const createItem = async (req, res) => {
 // Get all items (with category, pagination, filter)
 export const getItems = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "", category } = req.query;
+    const { page = 1, limit = 20, search = "", category } = req.query;
 
     const query = {};
     if (search) query.name = { $regex: search, $options: "i" };
     if (category) query.category = category;
 
+    const numericLimit = Number(limit);
+    const numericPage = Number(page);
+
     const items = await Item.find(query)
       .populate("category", "name")
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .skip((numericPage - 1) * numericLimit)
+      .limit(numericLimit);
 
     const total = await Item.countDocuments(query);
+
+    // ✅ DEFINE IT PROPERLY
+    const hasMore = items.length === numericLimit;
 
     res.json({
       success: true,
       data: items,
-      pagination: { total, page: Number(page), limit: Number(limit) },
+      pagination: {
+        total,
+        page: numericPage,
+        limit: numericLimit,
+        hasMore,
+      },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -54,12 +67,19 @@ export const updateItem = async (req, res) => {
     if (req.body.category) {
       const categoryExists = await Category.findById(req.body.category);
       if (!categoryExists) {
-        return res.status(400).json({ success: false, message: "Invalid category" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid category" });
       }
     }
 
-    const item = await Item.findByIdAndUpdate(id, req.body, { new: true }).populate("category", "name");
-    if (!item) return res.status(404).json({ success: false, message: "Item not found" });
+    const item = await Item.findByIdAndUpdate(id, req.body, {
+      new: true,
+    }).populate("category", "name");
+    if (!item)
+      return res
+        .status(404)
+        .json({ success: false, message: "Item not found" });
 
     res.json({ success: true, data: item });
   } catch (err) {
@@ -72,7 +92,10 @@ export const deleteItem = async (req, res) => {
   try {
     const { id } = req.params;
     const item = await Item.findByIdAndDelete(id);
-    if (!item) return res.status(404).json({ success: false, message: "Item not found" });
+    if (!item)
+      return res
+        .status(404)
+        .json({ success: false, message: "Item not found" });
 
     res.json({ success: true, message: "Item deleted" });
   } catch (err) {

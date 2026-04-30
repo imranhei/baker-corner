@@ -23,7 +23,7 @@ const Category = () => {
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const limit = 10; // items per page
+  const limit = 20; // items per page
 
   useEffect(() => {
     dispatch(fetchCategories({ page, limit, search: searchTerm }))

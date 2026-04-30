@@ -5,12 +5,12 @@ const initialState = {
   isLoading: false,
   actionLoading: false,
   receives: [],
-  pagination: { total: 0, totalAll: 0, page: 1, limit: 10 },
+  pagination: { total: 0, totalAll: 0, page: 1, limit: 20 },
 };
 
 export const fetchReceives = createAsyncThunk(
   "receives/fetchReceives",
-  async ({ page = 1, limit = 10, search = "" } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 20, search = "" } = {}, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/api/purchase", {
         params: { page, limit, search },

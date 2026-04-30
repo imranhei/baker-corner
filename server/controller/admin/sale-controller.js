@@ -109,7 +109,7 @@ export async function listSales(req, res) {
     } = req.query;
 
     const numericPage = Math.max(1, parseInt(page, 10) || 1);
-    const numericLimit = Math.min(200, Math.max(1, parseInt(limit, 10) || 20));
+    const numericLimit = Math.min(200, Math.max(1, parseInt(limit, 20) || 20));
     const skip = (numericPage - 1) * numericLimit;
 
     // ---------- Filters ----------

@@ -19,7 +19,7 @@ const Stock = () => {
   const [minQty, setMinQty] = useState("");
   const [maxQty, setMaxQty] = useState("");
   const [sort, setSort] = useState("desc");
-  const limit = 10;
+  const limit = 20;
 
   useEffect(() => {
     dispatch(fetchStocks({ page, limit, q, minQty, maxQty, sort }))
