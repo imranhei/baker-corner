@@ -3,21 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Edit, Loader2, Plus } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchItems } from "@/redux/admin/item-slice"; // ✅ Make sure this exists
+import axiosInstance from "@/utils/axiosInstance";
+import { AsyncSearchSelect } from "@/components/AsyncSearchSelect";
 
 export function AddReceivedModal({
   onAddReceived = () => {},
@@ -27,33 +20,43 @@ export function AddReceivedModal({
   type = "button",
   actionLoading = false,
 }) {
-  const dispatch = useDispatch();
-  const { items, isLoading } = useSelector((state) => state.items);
-
   const [open, setOpen] = useState(false);
+
   const [formData, setFormData] = useState({
-    itemId: "",
+    item: null, // ✅ store full object
     quantity: "",
     price: "",
     date: "",
   });
 
+  // ✅ Populate form on open
   useEffect(() => {
     if (open) {
-      dispatch(fetchItems({ page: 1, limit: 1000 }));
       setFormData({
-        itemId: initialData?.item?._id || "",
+        item: initialData?.item || null,
         quantity: initialData?.quantity || "",
         price: initialData?.price || "",
         date: initialData?.date?.split("T")[0] || "",
       });
     }
-  }, [open, initialData, dispatch]);
+  }, [open, initialData]);
 
+  // ✅ Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      const payload = { ...formData };
+      const payload = {
+        itemId: formData.item?._id, // ✅ convert here
+        quantity: Number(formData.quantity),
+        price: Number(formData.price),
+        date: formData.date,
+      };
+
+      if (!payload.itemId) {
+        throw new Error("Item is required");
+      }
+
       if (initialData) {
         await onUpdateReceived({ id: initialData._id, ...payload });
       } else {
@@ -61,7 +64,12 @@ export function AddReceivedModal({
       }
 
       setOpen(false);
-      setFormData({ itemId: "", quantity: "", price: "", date: "" });
+      setFormData({
+        item: null,
+        quantity: "",
+        price: "",
+        date: "",
+      });
     } catch (err) {
       console.error("Add/Update failed:", err);
     }
@@ -94,76 +102,89 @@ export function AddReceivedModal({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="item">Item</Label>
-              <Select
-                value={formData.itemId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, itemId: value })
+            {/* ✅ Async Item Select */}
+            <div className="space-y-1">
+              <Label>Item</Label>
+
+              <AsyncSearchSelect
+                value={formData.item}
+                placeholder="Select item"
+                getKey={(item) => item?._id}
+                displayValue={(item) =>
+                  `${item.name} - ${item.category?.name || "No Category"}`
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoading ? (
-                    <SelectItem value="loading" disabled>
-                      Loading...
-                    </SelectItem>
-                  ) : items.length > 0 ? (
-                    items.map((item) => (
-                      <SelectItem key={item._id} value={item._id}>
-                        {item.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-item" disabled>
-                      No items found
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+                fetchOptions={async (query, page) => {
+                  const res = await axiosInstance.get("/api/item", {
+                    params: {
+                      page,
+                      limit: 20,
+                      search: query,
+                    },
+                  });
+
+                  return {
+                    data: res.data.data,
+                    hasMore: res.data.pagination?.hasMore || false,
+                  };
+                }}
+                onChange={(item) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    item,
+                  }))
+                }
+              />
             </div>
 
+            {/* Quantity */}
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
+              <Label>Quantity</Label>
               <Input
-                id="quantity"
                 type="number"
                 value={formData.quantity}
                 onChange={(e) =>
-                  setFormData({ ...formData, quantity: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    quantity: e.target.value,
+                  }))
                 }
                 required
               />
             </div>
 
+            {/* Price */}
             <div className="space-y-2">
-              <Label htmlFor="price">Price</Label>
+              <Label>Price</Label>
               <Input
-                id="price"
                 type="number"
                 value={formData.price}
                 onChange={(e) =>
-                  setFormData({ ...formData, price: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    price: e.target.value,
+                  }))
                 }
                 required
               />
             </div>
 
+            {/* Date */}
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
+              <Label>Date</Label>
               <Input
-                id="date"
                 type="date"
                 value={formData.date}
                 onChange={(e) =>
-                  setFormData({ ...formData, date: e.target.value })
+                  setFormData((prev) => ({
+                    ...prev,
+                    date: e.target.value,
+                  }))
                 }
                 required
               />
             </div>
 
+            {/* Actions */}
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"
@@ -173,10 +194,11 @@ export function AddReceivedModal({
               >
                 Cancel
               </Button>
+
               <Button type="submit" disabled={actionLoading}>
                 {actionLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin inline-block" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     {initialData ? "Updating..." : "Adding..."}
                   </>
                 ) : initialData ? (

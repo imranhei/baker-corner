@@ -46,8 +46,6 @@ export function ItemTable({
                   key={item._id}
                   ref={isLast ? lastElementRef : null} // ✅ attach here
                 >
-                  {/* ✅ Serial number (correct for infinite scroll) */}
-                  {/* <TableCell>{index + 1}</TableCell> */}
                   <TableCell>{items.findIndex(i => i._id === item._id) + 1}</TableCell>
 
                   <TableCell>{item.name}</TableCell>
