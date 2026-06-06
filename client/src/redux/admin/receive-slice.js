@@ -3,25 +3,37 @@ import axiosInstance from "@/utils/axiosInstance";
 
 const initialState = {
   isLoading: false,
+  isFetchingMore: false,
   actionLoading: false,
   receives: [],
-  pagination: { total: 0, totalAll: 0, page: 1, limit: 20 },
+  pagination: {
+    total: 0,
+    totalAll: 0,
+    page: 1,
+    limit: 20,
+    hasMore: false,
+  },
 };
 
 export const fetchReceives = createAsyncThunk(
   "receives/fetchReceives",
-  async ({ page = 1, limit = 20, search = "" } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 20, q = "" } = {}, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/api/purchase", {
-        params: { page, limit, search },
+        params: {
+          page,
+          limit,
+          q,
+        },
       });
+
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to fetch purchases"
+        error.response?.data?.message || "Failed to fetch purchases",
       );
     }
-  }
+  },
 );
 
 export const addReceive = createAsyncThunk(
@@ -32,10 +44,10 @@ export const addReceive = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to add purchase"
+        error.response?.data?.message || "Failed to add purchase",
       );
     }
-  }
+  },
 );
 
 export const deleteReceive = createAsyncThunk(
@@ -46,10 +58,10 @@ export const deleteReceive = createAsyncThunk(
       return { id, data: response.data };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to delete purchase"
+        error.response?.data?.message || "Failed to delete purchase",
       );
     }
-  }
+  },
 );
 
 export const updateReceive = createAsyncThunk(
@@ -58,15 +70,15 @@ export const updateReceive = createAsyncThunk(
     try {
       const response = await axiosInstance.put(
         `/api/purchase/${id}`,
-        receiveData
+        receiveData,
       );
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Failed to update purchase"
+        error.response?.data?.message || "Failed to update purchase",
       );
     }
-  }
+  },
 );
 
 const receiveSlice = createSlice({
@@ -75,16 +87,32 @@ const receiveSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchReceives.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchReceives.pending, (state, action) => {
+        const page = action.meta.arg?.page || 1;
+
+        if (page === 1) {
+          state.isLoading = true;
+        } else {
+          state.isFetchingMore = true;
+        }
       })
       .addCase(fetchReceives.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.receives = action.payload.data || [];
-        state.pagination = action.payload.meta || state.pagination;
+        state.isFetchingMore = false;
+
+        const { data, pagination } = action.payload;
+
+        if (pagination.page === 1) {
+          state.receives = data;
+        } else {
+          state.receives.push(...data);
+        }
+
+        state.pagination = pagination;
       })
       .addCase(fetchReceives.rejected, (state) => {
         state.isLoading = false;
+        state.isFetchingMore = false;
       })
       .addCase(addReceive.pending, (state) => {
         state.actionLoading = true;

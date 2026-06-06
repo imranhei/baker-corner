@@ -73,7 +73,9 @@ export async function deleteSale(req, res) {
     const { id } = req.params;
     const sale = await Sale.findById(id);
     if (!sale) {
-      return res.status(404).json({ success: false, message: "Sale not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Sale not found" });
     }
 
     const itemId = sale.item;
@@ -217,6 +219,7 @@ export async function listSales(req, res) {
         limit: numericLimit,
         total,
         pages: Math.ceil(total / numericLimit),
+        hasMore: numericPage < Math.ceil(total / numericLimit),
       },
     });
   } catch (err) {

@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export function StockTable({ stocks, isLoading }) {
+export function StockTable({ stocks, isLoading, lastElementRef }) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -31,25 +31,31 @@ export function StockTable({ stocks, isLoading }) {
               </TableCell>
             </TableRow>
           ) : stocks.length > 0 ? (
-            stocks.map((stock, index) => (
-              <TableRow key={stock._id}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell>{stock.item?.name || "N/A"}</TableCell>
-                <TableCell>{stock.item?.category?.name || "Uncategorized"}</TableCell>
-                <TableCell>{stock.totalQuantity}</TableCell>
-                <TableCell>
-                  {stock.avgPurchasePrice?.toFixed(2) || "0.00"}
-                </TableCell>
-                <TableCell>
-                  {stock.avgSalePrice?.toFixed(2) || "0.00"}
-                </TableCell>
-                <TableCell>
-                  {stock.lastUpdated
-                    ? new Date(stock.lastUpdated).toLocaleDateString("en-GB")
-                    : "N/A"}
-                </TableCell>
-              </TableRow>
-            ))
+            stocks.map((stock, index) => {
+              const isLast = stocks.length === index + 1;
+
+              return (
+                <TableRow key={index} ref={isLast ? lastElementRef : null}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{stock.item?.name || "N/A"}</TableCell>
+                  <TableCell>
+                    {stock.item?.category?.name || "Uncategorized"}
+                  </TableCell>
+                  <TableCell>{stock.totalQuantity}</TableCell>
+                  <TableCell>
+                    {stock.avgPurchasePrice?.toFixed(2) || "0.00"}
+                  </TableCell>
+                  <TableCell>
+                    {stock.avgSalePrice?.toFixed(2) || "0.00"}
+                  </TableCell>
+                  <TableCell>
+                    {stock.lastUpdated
+                      ? new Date(stock.lastUpdated).toLocaleDateString("en-GB")
+                      : "N/A"}
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-6 text-gray-500">

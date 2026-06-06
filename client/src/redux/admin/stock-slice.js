@@ -3,17 +3,25 @@ import axiosInstance from "@/utils/axiosInstance";
 
 const initialState = {
   isLoading: false,
+  isFetchingMore: false,
   actionLoading: false,
+
   stocks: [],
   stock: {},
-  pagination: { total: 0, totalAll: 0, page: 1, limit: 20 },
+
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 20,
+    hasMore: false,
+  },
 };
 
 export const fetchStocks = createAsyncThunk(
   "stocks/fetchStocks",
   async (
     { page = 1, limit = 20, q = "", minQty, maxQty, sort } = {},
-    { rejectWithValue }
+    { rejectWithValue },
   ) => {
     try {
       const params = { page, limit, q, sort };
@@ -23,10 +31,10 @@ export const fetchStocks = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Unauthorized or server error"
+        error.response?.data?.message || "Unauthorized or server error",
       );
     }
-  }
+  },
 );
 
 export const fetchStockById = createAsyncThunk(
@@ -37,28 +45,59 @@ export const fetchStockById = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Unauthorized or server error"
+        error.response?.data?.message || "Unauthorized or server error",
       );
     }
-  }
+  },
 );
 
 const stockSlice = createSlice({
   name: "stocks",
   initialState,
-  reducers: {},
+  reducers: {
+    resetStocks: (state) => {
+      state.stocks = [];
+      state.pagination = {
+        total: 0,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      };
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchStocks.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchStocks.pending, (state, action) => {
+        const page = action.meta.arg?.page || 1;
+
+        if (page === 1) {
+          state.isLoading = true;
+        } else {
+          state.isFetchingMore = true;
+        }
       })
+
       .addCase(fetchStocks.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.stocks = action.payload.data || [];
-        state.pagination = action.payload.meta;
+        state.isFetchingMore = false;
+
+        const { data, meta } = action.payload;
+
+        if (meta.page === 1) {
+          state.stocks = data;
+        } else {
+          state.stocks.push(...data);
+        }
+
+        state.pagination = {
+          ...meta,
+          hasMore: meta.page < meta.pages,
+        };
       })
+
       .addCase(fetchStocks.rejected, (state) => {
         state.isLoading = false;
+        state.isFetchingMore = false;
       })
       .addCase(fetchStockById.pending, (state) => {
         state.isLoading = true;
@@ -73,4 +112,5 @@ const stockSlice = createSlice({
   },
 });
 
+export const { resetStocks } = stockSlice.actions;
 export default stockSlice.reducer;

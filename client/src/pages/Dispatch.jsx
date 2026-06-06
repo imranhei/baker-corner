@@ -13,33 +13,37 @@ import { DispatchTable } from "@/components/DispatchTable";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import CustomPagination from "@/components/CustomPagination";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useDebounce } from "@/hooks/useDebounce";
+import { resetDispatches } from "@/redux/admin/dispatch-slice";
 
 const Dispatch = () => {
   const dispatch = useDispatch();
-  const { dispatches, pagination, isLoading, actionLoading } = useSelector(
-    (state) => state.dispatches
+  const { dispatches, isLoading, isFetchingMore, actionLoading, pagination } = useSelector(
+    (state) => state.dispatches,
   );
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const limit = 20;
 
-  const fetchData = () => {
-    dispatch(fetchDispatches({ page, limit, search: searchTerm }))
+  useEffect(() => {
+    dispatch(
+      fetchDispatches({
+        page,
+        limit,
+        q: debouncedSearch,
+      }),
+    )
       .unwrap()
-      .catch((err) => {
-        toast.error(err);
-      });
-  };
+      .catch((err) => toast.error(err));
+  }, [dispatch, page, debouncedSearch]);
 
   useEffect(() => {
-    dispatch(fetchDispatches({ page, limit, search: searchTerm }))
-      .unwrap()
-      .catch((err) => {
-        toast.error(err);
-      });
-  }, [dispatch, page, searchTerm]);
+    setPage(1);
+    dispatch(resetDispatches());
+  }, [debouncedSearch]);
 
   const handleAddDispatch = (data) => {
     return dispatch(addDispatch(data))
@@ -54,6 +58,18 @@ const Dispatch = () => {
         throw err;
       });
   };
+
+  const loadMore = () => {
+    if (!isLoading && !isFetchingMore && pagination?.hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const lastElementRef = useInfiniteScroll(
+    loadMore,
+    pagination?.hasMore,
+    isLoading || isFetchingMore,
+  );
 
   const handleDeleteDispatch = (id) => {
     return dispatch(deleteDispatch(id))
@@ -113,19 +129,18 @@ const Dispatch = () => {
 
           <DispatchTable
             dispatches={dispatches}
-            pagination={pagination}
             isLoading={isLoading}
             onDeleteDispatch={handleDeleteDispatch}
             onUpdateDispatch={handleUpdateDispatch}
             actionLoading={actionLoading}
+            lastElementRef={lastElementRef}
           />
 
-          <CustomPagination
-            total={pagination.total}
-            page={page}
-            limit={pagination.limit}
-            onPageChange={setPage}
-          />
+          {isFetchingMore && (
+            <div className="py-4 text-center text-sm text-muted-foreground">
+              Loading more...
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

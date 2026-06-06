@@ -3,25 +3,32 @@ import axiosInstance from "@/utils/axiosInstance";
 
 const initialState = {
   isLoading: false,
+  isFetchingMore: false,
   actionLoading: false,
+
   dispatches: [],
-  pagination: { total: 0, totalAll: 0, page: 1, limit: 20 },
+
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 20,
+    hasMore: false,
+  },
 };
 
 export const fetchDispatches = createAsyncThunk(
   "dispatches/fetchDispatches",
-  async ({ page = 1, limit = 20, search = "" } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 20, q = "" } = {}, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/api/sale", {
-        params: { page, limit, search },
+        params: { page, limit, q },
       });
+
       return response.data;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || "Unauthorized or server error"
-      );
+      return rejectWithValue(error.response?.data?.message || "Server error");
     }
-  }
+  },
 );
 
 export const addDispatch = createAsyncThunk(
@@ -32,10 +39,10 @@ export const addDispatch = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Unauthorized or server error"
+        error.response?.data?.message || "Unauthorized or server error",
       );
     }
-  }
+  },
 );
 
 export const deleteDispatch = createAsyncThunk(
@@ -46,10 +53,10 @@ export const deleteDispatch = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Unauthorized or server error"
+        error.response?.data?.message || "Unauthorized or server error",
       );
     }
-  }
+  },
 );
 
 export const updateDispatch = createAsyncThunk(
@@ -60,29 +67,61 @@ export const updateDispatch = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || "Unauthorized or server error"
+        error.response?.data?.message || "Unauthorized or server error",
       );
     }
-  }
+  },
 );
 
 const dispatchSlice = createSlice({
   name: "dispatches",
   initialState,
-  reducers: {},
+  reducers: {
+    resetDispatches: (state) => {
+      state.dispatches = [];
+      state.pagination = {
+        total: 0,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      };
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDispatches.pending, (state) => {
-        state.isLoading = true;
+      .addCase(fetchDispatches.pending, (state, action) => {
+        const page = action.meta.arg?.page || 1;
+
+        if (page === 1) {
+          state.isLoading = true;
+        } else {
+          state.isFetchingMore = true;
+        }
       })
+
       .addCase(fetchDispatches.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.dispatches = action.payload.data || [];
-        state.pagination = action.payload.meta || state.pagination;
+        state.isFetchingMore = false;
+
+        const { data, meta } = action.payload;
+
+        if (meta.page === 1) {
+          state.dispatches = data;
+        } else {
+          state.dispatches.push(...data);
+        }
+
+        state.pagination = {
+          ...meta,
+          hasMore: meta.page < meta.pages,
+        };
       })
+
       .addCase(fetchDispatches.rejected, (state) => {
         state.isLoading = false;
+        state.isFetchingMore = false;
       })
+
       .addCase(addDispatch.pending, (state) => {
         state.actionLoading = true;
       })
@@ -113,4 +152,5 @@ const dispatchSlice = createSlice({
   },
 });
 
+export const { resetDispatches } = dispatchSlice.actions;
 export default dispatchSlice.reducer;

@@ -11,11 +11,11 @@ import { AddDispatchModal } from "./modal/AddDispatchModal";
 
 export function DispatchTable({
   dispatches,
-  pagination,
   isLoading,
   onDeleteDispatch,
   onUpdateDispatch,
   actionLoading,
+  lastElementRef,
 }) {
   return (
     <div className="rounded-md border">
@@ -39,40 +39,47 @@ export function DispatchTable({
               </TableCell>
             </TableRow>
           ) : dispatches.length > 0 ? (
-            dispatches.map((dispatch, index) => (
-              <TableRow key={dispatch._id}>
-                <TableCell>
-                  {(pagination.page - 1) * pagination.limit + index + 1}
-                </TableCell>
-                <TableCell>{dispatch.item?.name || "N/A"}</TableCell>
-                <TableCell>
-                  {dispatch.item?.category?.name || "Uncategorized"}
-                </TableCell>
-                <TableCell>{dispatch.quantity}</TableCell>
-                <TableCell>{dispatch.price}</TableCell>
-                <TableCell>
-                  {dispatch.date
-                    ? new Date(dispatch.date).toLocaleDateString("en-GB", {
-                        timeZone: "UTC",
-                      })
-                    : "N/A"}
-                </TableCell>
-                <TableCell className="flex gap-2">
-                  <AddDispatchModal
-                    onUpdateDispatch={onUpdateDispatch}
-                    type="icon"
-                    initialData={dispatch}
-                    actionLoading={actionLoading}
-                  />
-                  <DeleteModal
-                    onDeleteItem={onDeleteDispatch}
-                    actionLoading={actionLoading}
-                    id={dispatch._id}
-                    name={dispatch.item?.name}
-                  />
-                </TableCell>
-              </TableRow>
-            ))
+            dispatches.map((dispatch, index) => {
+              const isLast = dispatches.length === index + 1;
+
+              return (
+                <TableRow
+                  key={dispatch._id}
+                  ref={isLast ? lastElementRef : null}
+                >
+                  <TableCell>
+                    {index + 1}
+                  </TableCell>
+                  <TableCell>{dispatch.item?.name || "N/A"}</TableCell>
+                  <TableCell>
+                    {dispatch.item?.category?.name || "Uncategorized"}
+                  </TableCell>
+                  <TableCell>{dispatch.quantity}</TableCell>
+                  <TableCell>{dispatch.price}</TableCell>
+                  <TableCell>
+                    {dispatch.date
+                      ? new Date(dispatch.date).toLocaleDateString("en-GB", {
+                          timeZone: "UTC",
+                        })
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell className="flex gap-2">
+                    <AddDispatchModal
+                      onUpdateDispatch={onUpdateDispatch}
+                      type="icon"
+                      initialData={dispatch}
+                      actionLoading={actionLoading}
+                    />
+                    <DeleteModal
+                      onDeleteItem={onDeleteDispatch}
+                      actionLoading={actionLoading}
+                      id={dispatch._id}
+                      name={dispatch.item?.name}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-6 text-gray-500">

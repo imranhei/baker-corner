@@ -11,11 +11,11 @@ import { AddReceivedModal } from "./modal/AddReceivedModal";
 
 export function ReceiveTable({
   items,
-  pagination,
   isLoading,
   onDeleteReceived,
   onUpdateReceived,
   actionLoading,
+  lastElementRef,
 }) {
   return (
     <div className="rounded-md border">
@@ -39,42 +39,46 @@ export function ReceiveTable({
               </TableCell>
             </TableRow>
           ) : items.length > 0 ? (
-            items.map((item, index) => (
-              <TableRow key={item._id}>
-                <TableCell>
-                  {(pagination.page - 1) * pagination.limit + index + 1}
-                </TableCell>
-                <TableCell>{item.item?.name || "N/A"}</TableCell>
-                <TableCell>
-                  {item.item?.category?.name || "Uncategorized"}
-                </TableCell>
-                <TableCell>{item.quantity}</TableCell>
-                <TableCell>{item.price}</TableCell>
-                <TableCell>
-                  {item.date
-                    ? new Date(item.date).toLocaleDateString("en-GB", {
-                        timeZone: "UTC",
-                      })
-                    : "N/A"}
-                </TableCell>
+            items.map((item, index) => {
+              const isLast = items.length === index + 1;
 
-                <TableCell className="space-x-2">
-                  <AddReceivedModal
-                    onUpdateReceived={onUpdateReceived}
-                    type="icon"
-                    initialData={item}
-                    triggerLabel="Edit"
-                    actionLoading={actionLoading}
-                  />
-                  <DeleteModal
-                    onDelete={() => onDeleteReceived(item._id)}
-                    actionLoading={actionLoading}
-                    id={item._id}
-                    name={item.item?.name}
-                  />
-                </TableCell>
-              </TableRow>
-            ))
+              return (
+                <TableRow key={item._id} ref={isLast ? lastElementRef : null}>
+                  <TableCell>
+                    {items.findIndex((i) => i._id === item._id) + 1}
+                  </TableCell>
+                  <TableCell>{item.item?.name || "N/A"}</TableCell>
+                  <TableCell>
+                    {item.item?.category?.name || "Uncategorized"}
+                  </TableCell>
+                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>{item.price}</TableCell>
+                  <TableCell>
+                    {item.date
+                      ? new Date(item.date).toLocaleDateString("en-GB", {
+                          timeZone: "UTC",
+                        })
+                      : "N/A"}
+                  </TableCell>
+
+                  <TableCell className="space-x-2">
+                    <AddReceivedModal
+                      onUpdateReceived={onUpdateReceived}
+                      type="icon"
+                      initialData={item}
+                      triggerLabel="Edit"
+                      actionLoading={actionLoading}
+                    />
+                    <DeleteModal
+                      onDeleteItem={() => onDeleteReceived(item._id)}
+                      actionLoading={actionLoading}
+                      id={item._id}
+                      name={item.item?.name}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-6 text-gray-500">

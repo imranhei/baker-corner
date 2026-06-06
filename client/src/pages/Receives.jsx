@@ -13,27 +13,52 @@ import { ReceiveTable } from "@/components/ReceiveTable";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import CustomPagination from "@/components/CustomPagination";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const Receives = () => {
   const dispatch = useDispatch();
-  const { receives, pagination, isLoading, actionLoading } = useSelector(
-    (state) => state.receives
-  );
+  const { receives, pagination, isLoading, isFetchingMore, actionLoading } =
+    useSelector((state) => state.receives);
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const limit = 20;
 
   const fetchData = () => {
-    dispatch(fetchReceives({ page, limit, search: searchTerm }))
+    dispatch(fetchReceives({ page, limit, q: searchTerm }))
       .unwrap()
       .catch((err) => toast.error(err));
   };
 
   useEffect(() => {
-    fetchData();
-  }, [dispatch, page, searchTerm]);
+    setPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    dispatch(
+      fetchReceives({
+        page,
+        limit,
+        q: debouncedSearch,
+      }),
+    )
+      .unwrap()
+      .catch((err) => toast.error(err));
+  }, [dispatch, page, debouncedSearch]);
+
+  const loadMore = () => {
+    if (!isLoading && !isFetchingMore && pagination?.hasMore) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const lastElementRef = useInfiniteScroll(
+    loadMore,
+    pagination?.hasMore,
+    isLoading,
+  );
 
   const handleAddReceived = (data) => {
     return dispatch(addReceive(data))
@@ -50,6 +75,7 @@ const Receives = () => {
   };
 
   const handleDeleteReceived = (id) => {
+    console.log("Deleting receive with ID:", id);
     return dispatch(deleteReceive(id))
       .unwrap()
       .then(() => {
@@ -64,7 +90,7 @@ const Receives = () => {
 
   const handleUpdateReceived = (updatedData) => {
     return dispatch(
-      updateReceive({ id: updatedData.id, receiveData: updatedData })
+      updateReceive({ id: updatedData.id, receiveData: updatedData }),
     )
       .unwrap()
       .then(() => {
@@ -99,29 +125,25 @@ const Receives = () => {
             <Input
               placeholder="Search purchases..."
               value={searchTerm}
-              onChange={(e) => {
-                setPage(1);
-                setSearchTerm(e.target.value);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
 
           <ReceiveTable
             items={receives}
-            pagination={pagination}
             isLoading={isLoading}
             onDeleteReceived={handleDeleteReceived}
             onUpdateReceived={handleUpdateReceived}
             actionLoading={actionLoading}
+            lastElementRef={lastElementRef}
           />
 
-          <CustomPagination
-            total={pagination.total}
-            page={page}
-            limit={pagination.limit}
-            onPageChange={setPage}
-          />
+          {isFetchingMore && (
+            <div className="py-4 text-center text-sm text-muted-foreground">
+              Loading more...
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
