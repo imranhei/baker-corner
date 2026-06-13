@@ -75,7 +75,6 @@ const Receives = () => {
   };
 
   const handleDeleteReceived = (id) => {
-    console.log("Deleting receive with ID:", id);
     return dispatch(deleteReceive(id))
       .unwrap()
       .then(() => {

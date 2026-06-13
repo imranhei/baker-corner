@@ -23,9 +23,9 @@ export function AddDispatchModal({
   const [open, setOpen] = useState(false);
 
   const [formData, setFormData] = useState({
-    item: null, // ✅ full object
+    item: null,
     quantity: "",
-    price: "",
+    totalPrice: "",
     date: "",
   });
 
@@ -49,9 +49,12 @@ export function AddDispatchModal({
 
     try {
       const payload = {
-        itemId: formData.item?._id, // ✅ convert here
+        itemId: formData.item?._id,
         quantity: Number(formData.quantity),
-        price: Number(formData.price),
+        price:
+          formData.quantity && Number(formData.quantity) > 0
+            ? Number(formData.totalPrice) / Number(formData.quantity)
+            : 0,
         date: formData.date,
       };
 
@@ -144,7 +147,7 @@ export function AddDispatchModal({
 
             {/* Quantity */}
             <div className="space-y-2">
-              <Label>Quantity</Label>
+              <Label> Total Quantity</Label>
               <Input
                 type="number"
                 value={formData.quantity}
@@ -159,20 +162,32 @@ export function AddDispatchModal({
             </div>
 
             {/* Price */}
+            {/* Total Price */}
             <div className="space-y-2">
-              <Label>Price</Label>
+              <Label>Total Price</Label>
               <Input
                 type="number"
-                value={formData.price}
+                value={formData.totalPrice}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    price: e.target.value,
+                    totalPrice: e.target.value,
                   }))
                 }
                 required
               />
             </div>
+
+            {formData.quantity && formData.totalPrice && (
+              <div className="text-sm text-gray-600">
+                Unit Price:{" "}
+                <span className="font-semibold text-sky-700">
+                  {(
+                    Number(formData.totalPrice) / Number(formData.quantity)
+                  ).toFixed(2)}
+                </span>
+              </div>
+            )}
 
             {/* Date */}
             <div className="space-y-2">

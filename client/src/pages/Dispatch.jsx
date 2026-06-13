@@ -19,9 +19,8 @@ import { resetDispatches } from "@/redux/admin/dispatch-slice";
 
 const Dispatch = () => {
   const dispatch = useDispatch();
-  const { dispatches, isLoading, isFetchingMore, actionLoading, pagination } = useSelector(
-    (state) => state.dispatches,
-  );
+  const { dispatches, isLoading, isFetchingMore, actionLoading, pagination } =
+    useSelector((state) => state.dispatches);
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,8 +49,15 @@ const Dispatch = () => {
       .unwrap()
       .then(() => {
         toast.success("Dispatch added successfully");
+        dispatch(
+          fetchDispatches({
+            page: 1,
+            limit,
+            q: debouncedSearch,
+          }),
+        );
+
         setPage(1);
-        fetchData();
       })
       .catch((err) => {
         toast.error(err);
@@ -76,7 +82,16 @@ const Dispatch = () => {
       .unwrap()
       .then(() => {
         toast.success("Dispatch deleted successfully");
-        fetchData();
+
+        dispatch(
+          fetchDispatches({
+            page: 1,
+            limit,
+            q: debouncedSearch,
+          }),
+        );
+
+        setPage(1);
       })
       .catch((err) => {
         toast.error(err);
@@ -89,7 +104,15 @@ const Dispatch = () => {
       .unwrap()
       .then(() => {
         toast.success("Dispatch updated successfully");
-        fetchData();
+        dispatch(
+          fetchDispatches({
+            page: 1,
+            limit,
+            q: debouncedSearch,
+          }),
+        );
+
+        setPage(1);
       })
       .catch((err) => {
         toast.error(err);
