@@ -5,6 +5,7 @@ import itemSlice from "./admin/item-slice.js";
 import receiveSlice from "./admin/receive-slice.js";
 import dispatchSlice from "./admin/dispatch-slice.js";
 import stockSlice from "./admin/stock-slice.js";
+import summaryReducer from "./admin/summary-slice.js";
 
 const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ const store = configureStore({
     receives: receiveSlice,
     dispatches: dispatchSlice,
     stocks: stockSlice,
+    summary:summaryReducer
   },
 });
 export default store;

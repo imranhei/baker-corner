@@ -9,6 +9,7 @@ import itemRoutes from "./routes/admin/item-routes.js";
 import stockRoutes from "./routes/admin/stock-routes.js";
 import purchaseRoutes from "./routes/admin/purchase-routes.js";
 import saleRoutes from "./routes/admin/sale-routes.js";
+import summaryRoutes from "./routes/admin/summary-routes.js";
 
 dotenv.config();
 const app = express();
@@ -61,6 +62,7 @@ app.use("/api/item", itemRoutes);
 app.use("/api/stock", stockRoutes);
 app.use("/api/purchase", purchaseRoutes);
 app.use("/api/sale", saleRoutes);
+app.use("/api/admin/summary", summaryRoutes);
 
 
 const startServer = async () => {
