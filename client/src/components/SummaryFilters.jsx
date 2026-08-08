@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 import {
   Select,
@@ -10,129 +10,153 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-import { Calendar } from "@/components/ui/calendar";
+import { Filter, RotateCcw } from "lucide-react";
+import { useSelector } from "react-redux";
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+const MONTHS = [
+  {
+    value: "1",
+    label: "January",
+  },
+  {
+    value: "2",
+    label: "February",
+  },
+  {
+    value: "3",
+    label: "March",
+  },
+  {
+    value: "4",
+    label: "April",
+  },
+  {
+    value: "5",
+    label: "May",
+  },
+  {
+    value: "6",
+    label: "June",
+  },
+  {
+    value: "7",
+    label: "July",
+  },
+  {
+    value: "8",
+    label: "August",
+  },
+  {
+    value: "9",
+    label: "September",
+  },
+  {
+    value: "10",
+    label: "October",
+  },
+  {
+    value: "11",
+    label: "November",
+  },
+  {
+    value: "12",
+    label: "December",
+  },
+];
 
-import { format } from "date-fns";
+const SummaryFilters = ({ filters, setFilters, years }) => {
+  const { categories = [], isLoading } = useSelector(
+    (state) => state.categories,
+  );
 
-import { CalendarIcon, Filter } from "lucide-react";
-
-const SummaryFilters = ({ filters, setFilters }) => {
-  const [date, setDate] = useState();
-
-  const handlePeriod = (value) => {
-    setDate(undefined);
-
+  const handleMonthChange = (value) => {
     setFilters((prev) => ({
       ...prev,
-      period: value,
-      from: "",
-      to: "",
+      month: Number(value),
       page: 1,
     }));
   };
 
-  const handleCustomDate = (value) => {
-    setDate(value);
-
-    if (value?.from && value?.to) {
-      setFilters((prev) => ({
-        ...prev,
-        period: "",
-        from: format(value.from, "yyyy-MM-dd"),
-        to: format(value.to, "yyyy-MM-dd"),
-        page: 1,
-      }));
-    }
+  const handleYearChange = (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      year: Number(value),
+      page: 1,
+    }));
   };
 
-  const clearFilters = () => {
-    setDate(undefined);
+  const handleCategoryChange = (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      category: value === "all" ? "" : value,
+      page: 1,
+    }));
+  };
+
+  const handleReset = () => {
+    const now = new Date();
 
     setFilters((prev) => ({
       ...prev,
-      period: "thisMonth",
+      month: now.getMonth() + 1,
+      year: now.getFullYear(),
       category: "",
-      item: "",
-      from: "",
-      to: "",
       page: 1,
     }));
   };
 
   return (
-    <div className="bg-white border rounded-xl p-4 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="bg-white border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 font-semibold">
           <Filter size={18} />
           Filters
         </div>
 
-        <Button variant="outline" size="sm" onClick={clearFilters}>
+        <Button type="button" variant="outline" size="sm" onClick={handleReset}>
+          <RotateCcw className="mr-2 h-4 w-4" />
           Reset
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Period */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Month */}
 
-        <Select value={filters.period || ""} onValueChange={handlePeriod}>
+        <Select value={String(filters.month)} onValueChange={handleMonthChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Select Period" />
+            <SelectValue placeholder="Month" />
           </SelectTrigger>
 
           <SelectContent>
-            <SelectItem value="thisMonth">This Month</SelectItem>
-
-            <SelectItem value="lastMonth">Last Month</SelectItem>
-
-            <SelectItem value="thisYear">This Year</SelectItem>
-
-            <SelectItem value="lastYear">Last Year</SelectItem>
+            {MONTHS.map((month) => (
+              <SelectItem key={month.value} value={month.value}>
+                {month.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        {/* Date Range */}
+        {/* Year */}
 
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="justify-start">
-              <CalendarIcon className="mr-2 h-4 w-4" />
+        <Select value={String(filters.year)} onValueChange={handleYearChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Year" />
+          </SelectTrigger>
 
-              {date?.from
-                ? `${format(date.from, "dd MMM yyyy")}
-                ${date.to ? " - " + format(date.to, "dd MMM yyyy") : ""}`
-                : "Custom Date"}
-            </Button>
-          </PopoverTrigger>
-
-          <PopoverContent className="w-auto p-0">
-            <Calendar
-              mode="range"
-              selected={date}
-              onSelect={handleCustomDate}
-            />
-          </PopoverContent>
-        </Popover>
+          <SelectContent>
+            {years.map((year) => (
+              <SelectItem key={year} value={String(year)}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Category */}
 
         <Select
           value={filters.category || "all"}
-          onValueChange={(value) => {
-            setFilters((prev) => ({
-              ...prev,
-
-              category: value === "all" ? "" : value,
-
-              page: 1,
-            }));
-          }}
+          onValueChange={handleCategoryChange}
         >
           <SelectTrigger>
             <SelectValue placeholder="Category" />
@@ -141,32 +165,21 @@ const SummaryFilters = ({ filters, setFilters }) => {
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
 
-            {/* Later dynamic categories */}
-          </SelectContent>
-        </Select>
-
-        {/* Item */}
-
-        <Select
-          value={filters.item || "all"}
-          onValueChange={(value) => {
-            setFilters((prev) => ({
-              ...prev,
-
-              item: value === "all" ? "" : value,
-
-              page: 1,
-            }));
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Item" />
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value="all">All Items</SelectItem>
-
-            {/* Later dynamic items */}
+            {isLoading ? (
+              <SelectItem value="loading" disabled>
+                Loading...
+              </SelectItem>
+            ) : categories.length > 0 ? (
+              categories.map((category) => (
+                <SelectItem key={category._id} value={category._id}>
+                  {category.name}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-category" disabled>
+                No categories found
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>

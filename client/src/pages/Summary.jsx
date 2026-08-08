@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
-
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
 import { fetchSummary } from "@/redux/admin/summary-slice";
+import { fetchRecentSales } from "@/redux/admin/recent-sales-slice";
 import SummaryCards from "@/components/SummaryCards";
 import SummaryFilters from "@/components/SummaryFilters";
 import RevenueChart from "@/components/RevenueChart";
@@ -13,53 +12,98 @@ import RecentSalesTable from "@/components/RecentSalesTable";
 const Summary = () => {
   const dispatch = useDispatch();
 
+  const now = new Date();
+
+  const [filters, setFilters] = useState({
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    category: "",
+  });
+
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const startYear = Math.min(currentYear - 5, 2020);
+
+    return Array.from(
+      {
+        length: currentYear - startYear + 1,
+      },
+      (_, index) => currentYear - index,
+    );
+  }, []);
+
   const {
     cards,
     revenueChart,
     categoryChart,
     topItems,
-    recentSales,
-    pagination,
-    loading,
+    loading: summaryLoading,
   } = useSelector((state) => state.summary);
 
-  const [filters, setFilters] = useState({
-    period: "thisMonth",
-    category: "",
-    item: "",
-    from: "",
-    to: "",
-    page: 1,
-    limit: 10,
-  });
+  const {
+    recentSales,
+    pagination,
+    loading: recentSalesLoading,
+  } = useSelector((state) => state.recentSales);
 
   useEffect(() => {
-    const params = Object.fromEntries(
-      Object.entries(filters).filter(([_, value]) => value),
+    dispatch(
+      fetchSummary({
+        month: filters.month,
+        year: filters.year,
+        category: filters.category,
+      }),
     );
+  }, [dispatch, filters.month, filters.year, filters.category]);
 
-    dispatch(fetchSummary(params));
-  }, [
-    filters.period,
-    filters.category,
-    filters.item,
-    filters.from,
-    filters.to,
-    filters.page,
-    filters.limit,
-  ]);
+  useEffect(() => {
+    dispatch(
+      fetchRecentSales({
+        month: filters.month,
+        year: filters.year,
+        category: filters.category,
+        page: 1,
+        limit: 10,
+      }),
+    );
+  }, [dispatch, filters.month, filters.year, filters.category]);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handlePageChange = (page) => {
+    dispatch(
+      fetchRecentSales({
+        month: filters.month,
+        year: filters.year,
+        category: filters.category,
+        page,
+        limit: 10,
+      }),
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Sales Summary</h1>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold">Sales Summary</h1>
 
-      <SummaryFilters filters={filters} setFilters={setFilters} />
+        <p className="text-sm text-muted-foreground mt-1">
+          Monthly sales performance and analytics
+        </p>
+      </div>
+
+      <SummaryFilters filters={filters} setFilters={setFilters} years={years} />
+
+      {summaryLoading && (
+        <div className="text-sm text-muted-foreground">Updating summary...</div>
+      )}
 
       <SummaryCards cards={cards} />
+
+      <RecentSalesTable
+        data={recentSales}
+        pagination={pagination}
+        loading={recentSalesLoading}
+        onPageChange={handlePageChange}
+      />
 
       <RevenueChart data={revenueChart} />
 
@@ -68,17 +112,6 @@ const Summary = () => {
 
         <TopItemsChart data={topItems} />
       </div>
-
-      <RecentSalesTable
-        data={recentSales}
-        pagination={pagination}
-        onPageChange={(page) => {
-          setFilters((prev) => ({
-            ...prev,
-            page,
-          }));
-        }}
-      />
     </div>
   );
 };

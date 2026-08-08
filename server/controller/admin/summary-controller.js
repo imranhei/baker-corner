@@ -5,76 +5,69 @@ import mongoose from "mongoose";
 
 export const getSummary = async (req, res) => {
   try {
-    const { period, from, to, category, item } = req.query;
+    const { month, year, category } = req.query;
 
-    let startDate;
-    let endDate = new Date();
-    const page = Number(req.query.page) || 1;
-
-    const limit = Number(req.query.limit) || 10;
-
+    const selectedMonth = Number(month) || new Date().getMonth() + 1;
+    const selectedYear = Number(year) || new Date().getFullYear();
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 10, 1);
     const skip = (page - 1) * limit;
 
-    const categoryFilter = category
-  ? [
-      {
-        $lookup: {
-          from: "items",
-          localField: "item",
-          foreignField: "_id",
-          as: "itemData",
-        },
-      },
-
-      {
-        $unwind: "$itemData",
-      },
-
-      {
-        $match: {
-          "itemData.category": new mongoose.Types.ObjectId(category),
-        },
-      },
-    ]
-  : [];
-
-    switch (period) {
-      case "thisMonth":
-        startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-        break;
-
-      case "lastMonth":
-        startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 1, 1);
-        endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 0);
-        break;
-
-      case "thisYear":
-        startDate = new Date(endDate.getFullYear(), 0, 1);
-        break;
-
-      case "lastYear":
-        startDate = new Date(endDate.getFullYear() - 1, 0, 1);
-        endDate = new Date(endDate.getFullYear() - 1, 11, 31);
-        break;
-
-      default:
-        if (from && to) {
-          startDate = new Date(from);
-          endDate = new Date(to);
-        }
+    if (selectedMonth < 1 || selectedMonth > 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid month",
+      });
     }
 
-    const match = {};
+    if (selectedYear < 2000 || selectedYear > 2100) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid year",
+      });
+    }
 
-    if (startDate) {
-      match.date = {
+    const startDate = new Date(
+      Date.UTC(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0),
+    );
+
+    const endDate = new Date(
+      Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0, 0),
+    );
+
+    const match = {
+      date: {
         $gte: startDate,
-        $lte: endDate,
-      };
-    }
+        $lt: endDate,
+      },
+    };
 
-    if (item) {
-      match.item = item;
+    const categoryFilter = [];
+
+    if (category) {
+      categoryFilter.push(
+        {
+          $lookup: {
+            from: "items",
+
+            localField: "item",
+
+            foreignField: "_id",
+
+            as: "itemData",
+          },
+        },
+
+        {
+          $unwind: "$itemData",
+        },
+
+        {
+          $match: {
+            "itemData.category": new mongoose.Types.ObjectId(category),
+          },
+        },
+      );
     }
 
     const cards = await Sale.aggregate([
@@ -83,6 +76,26 @@ export const getSummary = async (req, res) => {
       },
 
       ...categoryFilter,
+      {
+        $lookup: {
+          from: "stocks",
+
+          localField: "item",
+
+          foreignField: "item",
+
+          as: "stockData",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$stockData",
+
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
       {
         $group: {
           _id: null,
@@ -100,28 +113,41 @@ export const getSummary = async (req, res) => {
           totalTransactions: {
             $sum: 1,
           },
+
+          totalProfit: {
+            $sum: {
+              $multiply: [
+                {
+                  $subtract: [
+                    "$price",
+
+                    {
+                      $ifNull: ["$stockData.avgPurchasePrice", 0],
+                    },
+                  ],
+                },
+
+                "$quantity",
+              ],
+            },
+          },
         },
       },
+
       {
         $project: {
           _id: 0,
 
-          totalRevenue: 1,
+          totalRevenue: {
+            $round: ["$totalRevenue", 2],
+          },
 
           totalQuantitySold: 1,
 
           totalTransactions: 1,
 
-          averageOrderValue: {
-            $cond: [
-              {
-                $eq: ["$totalTransactions", 0],
-              },
-              0,
-              {
-                $divide: ["$totalRevenue", "$totalTransactions"],
-              },
-            ],
+          totalProfit: {
+            $round: ["$totalProfit", 2],
           },
         },
       },
@@ -137,34 +163,17 @@ export const getSummary = async (req, res) => {
       {
         $group: {
           _id: {
-            $cond: [
-              {
-                $eq: [period, "thisYear"],
-              },
+            day: {
+              $dayOfMonth: "$date",
+            },
 
-              // group by month
-              {
-                month: {
-                  $month: "$date",
-                },
-                year: {
-                  $year: "$date",
-                },
-              },
+            month: {
+              $month: "$date",
+            },
 
-              // group by day
-              {
-                day: {
-                  $dayOfMonth: "$date",
-                },
-                month: {
-                  $month: "$date",
-                },
-                year: {
-                  $year: "$date",
-                },
-              },
-            ],
+            year: {
+              $year: "$date",
+            },
           },
 
           revenue: {
@@ -177,57 +186,68 @@ export const getSummary = async (req, res) => {
 
       {
         $sort: {
-          "_id.year": 1,
-          "_id.month": 1,
           "_id.day": 1,
         },
       },
+
+      {
+        $project: {
+          _id: 0,
+
+          day: "$_id.day",
+
+          label: {
+            $concat: [
+              {
+                $toString: "$_id.day",
+              },
+
+              " ",
+
+              {
+                $arrayElemAt: [
+                  [
+                    "",
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "May",
+                    "Jun",
+                    "Jul",
+                    "Aug",
+                    "Sep",
+                    "Oct",
+                    "Nov",
+                    "Dec",
+                  ],
+
+                  "$_id.month",
+                ],
+              },
+            ],
+          },
+
+          revenue: {
+            $round: ["$revenue", 2],
+          },
+        },
+      },
     ]);
-
-    const formattedRevenueChart = revenueChart.map((item) => {
-      if (period === "thisYear") {
-        const monthNames = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-
-        return {
-          label: monthNames[item._id.month - 1],
-
-          revenue: item.revenue,
-        };
-      }
-
-      return {
-        label: `${item._id.day}/${item._id.month}`,
-
-        revenue: item.revenue,
-      };
-    });
 
     const categoryChart = await Sale.aggregate([
       {
         $match: match,
       },
 
-      ...categoryFilter,
-
-      // Get Item information
       {
         $lookup: {
           from: "items",
+
           localField: "item",
+
           foreignField: "_id",
+
           as: "itemData",
         },
       },
@@ -236,24 +256,47 @@ export const getSummary = async (req, res) => {
         $unwind: "$itemData",
       },
 
-      // Get Category information
+      /*
+      |--------------------------------------------------------------------------
+      | Apply category filter
+      |--------------------------------------------------------------------------
+      */
+
+      ...(category
+        ? [
+            {
+              $match: {
+                "itemData.category": new mongoose.Types.ObjectId(category),
+              },
+            },
+          ]
+        : []),
+
       {
         $lookup: {
           from: "categories",
+
           localField: "itemData.category",
+
           foreignField: "_id",
+
           as: "categoryData",
         },
       },
 
       {
-        $unwind: "$categoryData",
+        $unwind: {
+          path: "$categoryData",
+
+          preserveNullAndEmptyArrays: true,
+        },
       },
 
-      // Group by category
       {
         $group: {
-          _id: "$categoryData.name",
+          _id: {
+            $ifNull: ["$categoryData.name", "Uncategorized"],
+          },
 
           revenue: {
             $sum: {
@@ -276,8 +319,13 @@ export const getSummary = async (req, res) => {
       {
         $project: {
           _id: 0,
+
           name: "$_id",
-          revenue: 1,
+
+          revenue: {
+            $round: ["$revenue", 2],
+          },
+
           quantity: 1,
         },
       },
@@ -288,14 +336,14 @@ export const getSummary = async (req, res) => {
         $match: match,
       },
 
-      ...categoryFilter,
-
-      // Join Item collection
       {
         $lookup: {
           from: "items",
+
           localField: "item",
+
           foreignField: "_id",
+
           as: "itemData",
         },
       },
@@ -304,7 +352,16 @@ export const getSummary = async (req, res) => {
         $unwind: "$itemData",
       },
 
-      // Group sales by item
+      ...(category
+        ? [
+            {
+              $match: {
+                "itemData.category": new mongoose.Types.ObjectId(category),
+              },
+            },
+          ]
+        : []),
+
       {
         $group: {
           _id: "$itemData._id",
@@ -325,14 +382,12 @@ export const getSummary = async (req, res) => {
         },
       },
 
-      // Highest selling first
       {
         $sort: {
           quantity: -1,
         },
       },
 
-      // Only top 10 items
       {
         $limit: 10,
       },
@@ -340,9 +395,14 @@ export const getSummary = async (req, res) => {
       {
         $project: {
           _id: 0,
+
           name: 1,
+
           quantity: 1,
-          revenue: 1,
+
+          revenue: {
+            $round: ["$revenue", 2],
+          },
         },
       },
     ]);
@@ -360,27 +420,41 @@ export const getSummary = async (req, res) => {
           from: "items",
           localField: "item",
           foreignField: "_id",
-          as: "itemData",
+          as: "item",
         },
       },
-
       {
-        $unwind: "$itemData",
+        $unwind: "$item",
       },
 
-      // Join Category
+      // Category
       {
         $lookup: {
           from: "categories",
-          localField: "itemData.category",
+          localField: "item.category",
           foreignField: "_id",
-          as: "categoryData",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
         },
       },
 
+      // Stock
+      {
+        $lookup: {
+          from: "stocks",
+          localField: "item._id",
+          foreignField: "item",
+          as: "stock",
+        },
+      },
       {
         $unwind: {
-          path: "$categoryData",
+          path: "$stock",
           preserveNullAndEmptyArrays: true,
         },
       },
@@ -388,21 +462,47 @@ export const getSummary = async (req, res) => {
       {
         $project: {
           _id: 1,
-
           date: 1,
 
-          item: "$itemData.name",
+          item: "$item.name",
 
-          category: {
-            $ifNull: ["$categoryData.name", "Uncategorized"],
-          },
+          category: "$category.name",
 
           quantity: 1,
 
-          price: 1,
+          purchasePrice: {
+            $ifNull: ["$stock.avgPurchasePrice", 0],
+          },
 
-          total: {
+          sellingPrice: "$price",
+
+          purchaseTotal: {
+            $multiply: [
+              "$quantity",
+              {
+                $ifNull: ["$stock.avgPurchasePrice", 0],
+              },
+            ],
+          },
+
+          saleTotal: {
             $multiply: ["$quantity", "$price"],
+          },
+
+          profit: {
+            $subtract: [
+              {
+                $multiply: ["$quantity", "$price"],
+              },
+              {
+                $multiply: [
+                  "$quantity",
+                  {
+                    $ifNull: ["$stock.avgPurchasePrice", 0],
+                  },
+                ],
+              },
+            ],
           },
         },
       },
@@ -427,35 +527,303 @@ export const getSummary = async (req, res) => {
     res.status(200).json({
       success: true,
 
+      month: selectedMonth,
+
+      year: selectedYear,
+
       cards: cards.length
         ? cards[0]
         : {
             totalRevenue: 0,
+
             totalQuantitySold: 0,
+
             totalTransactions: 0,
-            averageOrderValue: 0,
+
+            totalProfit: 0,
           },
 
-      revenueChart: formattedRevenueChart,
+      revenueChart,
 
       categoryChart,
 
       topItems,
-
-      recentSales,
-
-      pagination: {
-        total: totalSales,
-        page,
-        limit,
-        totalPages: Math.ceil(totalSales / limit),
-      },
     });
   } catch (error) {
-    console.log(error);
+    console.error("Get Summary Error:", error);
 
     res.status(500).json({
       success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+export const getRecentSales = async (req, res) => {
+  try {
+    const { month, year, category } = req.query;
+
+    const selectedMonth = Number(month) || new Date().getMonth() + 1;
+
+    const selectedYear = Number(year) || new Date().getFullYear();
+
+    const page = Math.max(Number(req.query.page) || 1, 1);
+
+    const limit = Math.max(Number(req.query.limit) || 10, 1);
+
+    const skip = (page - 1) * limit;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Month boundaries
+    |--------------------------------------------------------------------------
+    */
+
+    const startDate = new Date(Date.UTC(selectedYear, selectedMonth - 1, 1));
+
+    const endDate = new Date(Date.UTC(selectedYear, selectedMonth, 1));
+
+    const match = {
+      date: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    };
+
+    /*
+    |--------------------------------------------------------------------------
+    | Category filter
+    |--------------------------------------------------------------------------
+    */
+
+    const categoryStages = [];
+
+    if (category) {
+      categoryStages.push({
+        $match: {
+          "item.category": new mongoose.Types.ObjectId(category),
+        },
+      });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recent Sales
+    |--------------------------------------------------------------------------
+    */
+
+    const result = await Sale.aggregate([
+      {
+        $match: match,
+      },
+
+      /*
+      |--------------------------------------------------------------------------
+      | Item
+      |--------------------------------------------------------------------------
+      */
+
+      {
+        $lookup: {
+          from: "items",
+
+          localField: "item",
+
+          foreignField: "_id",
+
+          as: "itemData",
+        },
+      },
+
+      {
+        $unwind: "$itemData",
+      },
+
+      /*
+      |--------------------------------------------------------------------------
+      | Category filter
+      |--------------------------------------------------------------------------
+      */
+
+      ...(category
+        ? [
+            {
+              $match: {
+                "itemData.category": new mongoose.Types.ObjectId(category),
+              },
+            },
+          ]
+        : []),
+
+      /*
+      |--------------------------------------------------------------------------
+      | Category
+      |--------------------------------------------------------------------------
+      */
+
+      {
+        $lookup: {
+          from: "categories",
+
+          localField: "itemData.category",
+
+          foreignField: "_id",
+
+          as: "categoryData",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$categoryData",
+
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      /*
+      |--------------------------------------------------------------------------
+      | Stock
+      |--------------------------------------------------------------------------
+      */
+
+      {
+        $lookup: {
+          from: "stocks",
+
+          localField: "itemData._id",
+
+          foreignField: "item",
+
+          as: "stockData",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$stockData",
+
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      /*
+      |--------------------------------------------------------------------------
+      | Data + pagination
+      |--------------------------------------------------------------------------
+      */
+
+      {
+        $facet: {
+          data: [
+            {
+              $sort: {
+                date: -1,
+              },
+            },
+
+            {
+              $skip: skip,
+            },
+
+            {
+              $limit: limit,
+            },
+
+            {
+              $project: {
+                _id: 1,
+
+                date: 1,
+
+                item: "$itemData.name",
+
+                category: "$categoryData.name",
+
+                quantity: 1,
+
+                purchasePrice: {
+                  $ifNull: ["$stockData.avgPurchasePrice", 0],
+                },
+
+                sellingPrice: "$price",
+
+                purchaseTotal: {
+                  $multiply: [
+                    "$quantity",
+
+                    {
+                      $ifNull: ["$stockData.avgPurchasePrice", 0],
+                    },
+                  ],
+                },
+
+                saleTotal: {
+                  $multiply: ["$quantity", "$price"],
+                },
+
+                profit: {
+                  $subtract: [
+                    {
+                      $multiply: ["$quantity", "$price"],
+                    },
+
+                    {
+                      $multiply: [
+                        "$quantity",
+
+                        {
+                          $ifNull: ["$stockData.avgPurchasePrice", 0],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+
+          total: [
+            {
+              $count: "count",
+            },
+          ],
+        },
+      },
+    ]);
+
+    const salesData = result[0]?.data || [];
+
+    const total = result[0]?.total?.[0]?.count || 0;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
+    res.status(200).json({
+      success: true,
+
+      recentSales: salesData,
+
+      pagination: {
+        total,
+
+        page,
+
+        limit,
+
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Get Recent Sales Error:", error);
+
+    res.status(500).json({
+      success: false,
+
       message: error.message,
     });
   }

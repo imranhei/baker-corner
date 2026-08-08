@@ -62,7 +62,7 @@ app.use("/api/item", itemRoutes);
 app.use("/api/stock", stockRoutes);
 app.use("/api/purchase", purchaseRoutes);
 app.use("/api/sale", saleRoutes);
-app.use("/api/admin/summary", summaryRoutes);
+app.use("/api/summary", summaryRoutes);
 
 
 const startServer = async () => {

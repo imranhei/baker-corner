@@ -1,48 +1,56 @@
 import React from "react";
 
-import { DollarSign, Package, ShoppingCart, ChartColumnStacked } from "lucide-react";
+import { DollarSign, Package, ShoppingCart, TrendingUp } from "lucide-react";
 
-const SummaryCards = ({ cards }) => {
-  const data = [
+const formatMoney = (value) => {
+  return new Intl.NumberFormat("en-BD", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+};
+
+const SummaryCards = ({ cards = {} }) => {
+  const cardData = [
     {
       title: "Total Revenue",
-      value: `৳ ${cards.totalRevenue}`,
+      value: `৳ ${formatMoney(cards.totalRevenue)}`,
       icon: DollarSign,
     },
     {
-      title: "Products Sold",
-      value: (cards.totalQuantitySold).toFixed(1),
+      title: "Quantity Sold",
+      value: Number(cards.totalQuantitySold).toFixed(2) || 0,
       icon: Package,
     },
     {
       title: "Transactions",
-      value: cards.totalTransactions,
+      value: Number(cards.totalTransactions).toFixed(2) || 0,
       icon: ShoppingCart,
     },
     {
-      title: "Average Sale",
-      value: `৳ ${cards.averageOrderValue.toFixed(2)}`,
-      icon: ChartColumnStacked,
+      title: "Total Profit",
+      value: `৳ ${formatMoney(cards.totalProfit)}`,
+      icon: TrendingUp,
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-      {data.map((item, index) => {
-        const Icon = item.icon;
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {cardData.map((card) => {
+        const Icon = card.icon;
 
         return (
-          <div
-            key={index}
-            className="rounded-xl border p-5 bg-white shadow-sm flex justify-between"
-          >
-            <div>
-              <p className="text-sm text-gray-500">{item.title}</p>
+          <div key={card.title} className="bg-white border rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">{card.title}</p>
 
-              <h2 className="text-2xl font-bold mt-2">{item.value}</h2>
+                <p className="text-2xl font-bold mt-2">{card.value}</p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-muted">
+                <Icon className="h-5 w-5" />
+              </div>
             </div>
-
-            <Icon className="h-8 w-8" />
           </div>
         );
       })}
